@@ -3,7 +3,7 @@ import "@/global.css";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
-import countriesData from "../assets/data/countries110.json";
+import countriesData from "../assets/data/countries110_merged_small.json";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -45,6 +45,33 @@ const getCountryName = (feature: GeoJsonFeature) =>
 const isAntarctica = (feature: GeoJsonFeature) => {
   const name = getCountryName(feature).toLowerCase();
   return name === "antarctica" || name.includes("antarctic");
+};
+
+const getFeatureCentroid = (feature: GeoJsonFeature): LatLng | null => {
+  const geometry = feature.geometry;
+  if (!geometry || !geometry.coordinates) return null;
+
+  const coordinates = geometry.coordinates as any;
+  const flattened = geometry.type === "Polygon"
+    ? coordinates.flat()
+    : geometry.type === "MultiPolygon"
+      ? coordinates.flatMap((polygon: GeoJsonPolygon) => polygon.flat())
+      : [];
+
+  if (flattened.length === 0) return null;
+
+  let totalLat = 0;
+  let totalLng = 0;
+
+  for (const [lng, lat] of flattened) {
+    totalLat += lat;
+    totalLng += lng;
+  }
+
+  return {
+    latitude: totalLat / flattened.length,
+    longitude: totalLng / flattened.length,
+  };
 };
 
 const toLatLng = ([longitude, latitude]: GeoJsonPoint): LatLng => ({
@@ -116,6 +143,7 @@ export default function App() {
             />
           ))
         )}
+
       </MapView>
 
       <View style={styles.infoBar} pointerEvents="none">
