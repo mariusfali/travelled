@@ -6,7 +6,6 @@ import React, {
 } from "react";
 
 import {
-  Dimensions,
   StyleSheet,
   Text,
   View,
@@ -65,6 +64,7 @@ type GeoJsonCollection = {
 
 type Country = {
   id: string;
+  iso3: string | null;
   name: string;
   geometry: GeoJsonGeometry;
 };
@@ -76,9 +76,6 @@ console.log(
   "Country features:",
   worldData.features.length
 );
-
-const { width, height } =
-  Dimensions.get("window");
 
 const SVG_WIDTH = 1000;
 const SVG_HEIGHT = 500;
@@ -175,31 +172,31 @@ export default function App() {
             properties.name ??
             "Unknown";
 
-          const isoCode =
-            typeof properties.ISO_A3 === "string"
+          const iso3 =
+            typeof properties.ISO_A3 ===
+            "string" &&
+            properties.ISO_A3 !== "-99"
               ? properties.ISO_A3
               : typeof properties[
                   "ISO3166-1-Alpha-3"
-                ] === "string"
+                ] === "string" &&
+                properties[
+                  "ISO3166-1-Alpha-3"
+                ] !== "-99"
               ? properties[
                   "ISO3166-1-Alpha-3"
-                ]
-              : undefined;
-
-          const id =
-            isoCode && isoCode !== "-99"
-              ? isoCode
-              : `${name}-${index}`;
+                ] as string
+              : null;
 
           if (!feature.geometry) {
             return null;
           }
 
           return {
-            id,
+            id: `${iso3 ?? name}-${index}`,
+            iso3,
             name,
-            geometry:
-              feature.geometry,
+            geometry: feature.geometry,
           };
         })
         .filter(
@@ -210,36 +207,37 @@ export default function App() {
         );
     }, []);
 
-  console.log(
-    "Renderable countries:",
-    countries.length
-  );
+    console.log(
+      "Renderable countries:",
+      countries.length
+    );
 
-  const handleCountryPress = (
-    country: Country
-  ) => {
-    setSelectedCountry(country.name);
+    const handleCountryPress = (
+      country: Country
+    ) => {
+      setSelectedCountry(country.name);
 
-    setVisited((current) => {
-      const next = new Set(current);
+      setVisited((current) => {
+        const next = new Set(current);
 
-      if (next.has(country.id)) {
-        next.delete(country.id);
-      } else {
-        next.add(country.id);
-      }
+        if (next.has(country.id)) {
+          next.delete(country.id);
+        } else {
+          next.add(country.id);
+        }
 
-      return next;
-    });
-  };
+        return next;
+      });
+    };
 
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
         <Svg
-          width={width}
-          height={width / 2}
+          width="100%"
+          height="100%"
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
         >
           <G>
             {countries.map((country) => {
