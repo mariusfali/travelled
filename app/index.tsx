@@ -3,7 +3,7 @@ import "@/global.css";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
-import countriesData from "../assets/data/countries.json";
+import countriesData from "../assets/data/countries110.json";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -17,14 +17,17 @@ type LatLng = {
 type PolygonRing = LatLng[];
 
 type GeoJsonGeometry = {
-  type: "Polygon" | "MultiPolygon";
-  coordinates: GeoJsonPolygon | GeoJsonMultiPolygon;
+  type?: string;
+  coordinates?: unknown;
 };
 
 type GeoJsonFeature = {
   type: "Feature";
   properties?: {
     name?: string;
+    NAME?: string;
+    ADMIN?: string;
+    [key: string]: unknown;
   };
   geometry?: GeoJsonGeometry;
 };
@@ -34,7 +37,10 @@ type GeoJsonCollection = {
   features: GeoJsonFeature[];
 };
 
-const worldData = countriesData as GeoJsonCollection;
+const worldData = countriesData as unknown as GeoJsonCollection;
+
+const getCountryName = (feature: GeoJsonFeature) =>
+  feature.properties?.name ?? feature.properties?.NAME ?? feature.properties?.ADMIN ?? "Country";
 
 const toLatLng = ([longitude, latitude]: GeoJsonPoint): LatLng => ({
   latitude,
@@ -42,17 +48,17 @@ const toLatLng = ([longitude, latitude]: GeoJsonPoint): LatLng => ({
 });
 
 const getPolygonRings = (geometry?: GeoJsonGeometry): PolygonRing[] => {
-  if (!geometry) return [];
+  if (!geometry || !geometry.coordinates) return [];
+
+  const coordinates = geometry.coordinates as any;
 
   if (geometry.type === "Polygon") {
-    return (geometry.coordinates as GeoJsonPolygon).map((ring) =>
-      ring.map((point) => toLatLng(point))
-    );
+    return coordinates.map((ring: GeoJsonRing) => ring.map((point: GeoJsonPoint) => toLatLng(point)));
   }
 
   if (geometry.type === "MultiPolygon") {
-    return (geometry.coordinates as GeoJsonMultiPolygon).flatMap((polygon) =>
-      polygon.map((ring) => ring.map((point) => toLatLng(point)))
+    return coordinates.flatMap((polygon: GeoJsonPolygon) =>
+      polygon.map((ring: GeoJsonRing) => ring.map((point: GeoJsonPoint) => toLatLng(point)))
     );
   }
 
@@ -66,7 +72,7 @@ export default function App() {
     () =>
       worldData.features
         .map((feature) => {
-          const name = feature.properties?.name ?? "Country";
+          const name = getCountryName(feature);
           const rings = getPolygonRings(feature.geometry);
           return { name, rings };
         })
