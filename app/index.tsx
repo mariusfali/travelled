@@ -42,6 +42,11 @@ const worldData = countriesData as unknown as GeoJsonCollection;
 const getCountryName = (feature: GeoJsonFeature) =>
   feature.properties?.name ?? feature.properties?.NAME ?? feature.properties?.ADMIN ?? "Country";
 
+const isAntarctica = (feature: GeoJsonFeature) => {
+  const name = getCountryName(feature).toLowerCase();
+  return name === "antarctica" || name.includes("antarctic");
+};
+
 const toLatLng = ([longitude, latitude]: GeoJsonPoint): LatLng => ({
   latitude,
   longitude,
@@ -71,6 +76,7 @@ export default function App() {
   const polygons = useMemo(
     () =>
       worldData.features
+        .filter((feature) => !isAntarctica(feature))
         .map((feature) => {
           const name = getCountryName(feature);
           const rings = getPolygonRings(feature.geometry);
