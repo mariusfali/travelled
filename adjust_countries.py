@@ -17,10 +17,14 @@ from pathlib import Path
 #   - north_km: positive = move north, negative = move south
 #   - east_km: positive = move east, negative = move west
 COUNTRY_ADJUSTMENTS = {
-    "Vatican": {
-        "north_km": 0,
-        "east_km": -1,
-    },
+    # "Vatican": {
+    #     "north_km": 0,
+    #     "east_km": -1,
+    # },
+    # "Monaco": {
+    #         "north_km": 0.2,
+    #         "east_km": 0.5,
+    # },
     # Add more countries as needed:
     # "San Marino": {
     #     "north_km": 0.5,
