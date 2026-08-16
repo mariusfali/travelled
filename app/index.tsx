@@ -108,9 +108,10 @@ export default function App() {
             <Polygon
               key={`${name}-${index}`}
               coordinates={ring}
-              strokeColor="rgba(29, 78, 216, 0.95)"
+              // strokeColor="rgba(29, 78, 216, 0.95)"
+              strokeColor="rgba(216, 29, 185, 0.95)"
               fillColor="rgba(96, 165, 250, 0.08)"
-              strokeWidth={0.9}
+              strokeWidth={2}
               tappable
               onPress={() => setSelectedCountry(name)}
             />
