@@ -1,6 +1,6 @@
 
 import "@/global.css";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
 import countriesData from "../assets/data/countries-merged.json";
@@ -71,7 +71,10 @@ const getPolygonRings = (geometry?: GeoJsonGeometry): PolygonRing[] => {
 };
 
 export default function App() {
-  const [selectedCountry, setSelectedCountry] = useState("World map");
+  // const [selectedCountry, setSelectedCountry] = useState("World map");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
+  const polygonWasPressed = useRef(false);
 
   const polygons = useMemo(
     () =>
@@ -102,18 +105,38 @@ export default function App() {
         pitchEnabled={false}
         scrollEnabled
         zoomEnabled
+
+        onPress={() => {
+          if (!polygonWasPressed.current) {
+            setSelectedCountry(null);
+          }
+
+          polygonWasPressed.current = false;
+        }}
       >
         {polygons.map(({ name, rings }) =>
           rings.map((ring: PolygonRing, index: number) => (
             <Polygon
               key={`${name}-${index}`}
               coordinates={ring}
-              // strokeColor="rgba(29, 78, 216, 0.95)"
               strokeColor="rgba(216, 29, 185, 0.95)"
-              fillColor="rgba(96, 165, 250, 0.08)"
-              strokeWidth={2}
+              // fillColor="rgba(96, 165, 250, 0.08)"
+              fillColor={
+                selectedCountry === name
+                  ? "rgba(216, 29, 185, 0.45)"
+                  : "rgba(178, 14, 243, 0.08)" // farge også opacity på slutten der
+              }
+              // strokeWidth={2}
+              strokeWidth={selectedCountry === name ? 3 : 1}
               tappable
-              onPress={() => setSelectedCountry(name)}
+              // onPress={() => setSelectedCountry(name)}
+              onPress={() => {
+                polygonWasPressed.current = true;
+
+                setSelectedCountry((current) =>
+                  current === name ? null : name
+                );
+              }}
             />
           ))
         )}
