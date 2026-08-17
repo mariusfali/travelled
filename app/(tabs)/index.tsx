@@ -3,7 +3,7 @@ import "@/global.css";
 import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
-import countriesData from "../assets/data/countries-merged.json";
+import countriesData from "../../assets/data/countries-merged.json";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -93,11 +93,20 @@ export default function App() {
     <View style={styles.container}>
       <MapView
         style={styles.map}
-        initialRegion={{
-          latitude: 20,
-          longitude: 0,
-          latitudeDelta: 65,
-          longitudeDelta: 120,
+        // initialRegion={{
+        //   latitude: 20,
+        //   longitude: 0,
+        //   latitudeDelta: 65,
+        //   longitudeDelta: 120,
+        // }}
+        initialCamera={{
+          center: {
+            latitude: 20,
+            longitude: 10,
+          },
+          pitch: 0, // camera tilt
+          heading: 0, // map rotation
+          zoom: 2,
         }}
         showsCompass={false}
         showsScale={false}
@@ -119,15 +128,15 @@ export default function App() {
             <Polygon
               key={`${name}-${index}`}
               coordinates={ring}
-              strokeColor="rgba(216, 29, 185, 0.95)"
+              strokeColor="rgba(0, 0, 0, 1)"
               // fillColor="rgba(96, 165, 250, 0.08)"
               fillColor={
                 selectedCountry === name
-                  ? "rgba(216, 29, 185, 0.45)"
-                  : "rgba(178, 14, 243, 0.08)" // farge også opacity på slutten der
+                  ? "rgba(162, 2, 255, 0.55)"
+                  : "rgba(80, 79, 79, 0.25)" // farge også opacity på slutten der
               }
               // strokeWidth={2}
-              strokeWidth={selectedCountry === name ? 3 : 1}
+              strokeWidth={selectedCountry === name ? 2 : 1}
               tappable
               // onPress={() => setSelectedCountry(name)}
               onPress={() => {
