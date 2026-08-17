@@ -4,6 +4,8 @@ import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
 import countriesData from "../../assets/data/countries-merged.json";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/constants/theme";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -90,7 +92,7 @@ export default function App() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, {backgroundColor: colors.primary}]} edges={["bottom"]}>
       <MapView
         style={styles.map}
         // initialRegion={{
@@ -154,7 +156,7 @@ export default function App() {
       <View style={styles.infoBar} pointerEvents="none">
         <Text style={styles.infoText}>{selectedCountry}</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
