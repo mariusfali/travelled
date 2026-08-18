@@ -1,4 +1,4 @@
-import { Stack, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import "@/global.css";
 import React from 'react';
 import { View, Text, Dimensions } from "react-native";
@@ -8,6 +8,7 @@ const { width, height } = Dimensions.get("window")
 
 export default function TabLayout() {
   return <Tabs 
+    initialRouteName="index"
     screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
