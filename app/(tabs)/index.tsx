@@ -3,7 +3,7 @@ import "@/global.css";
 import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
-import countriesData from "../assets/data/countries-merged.json";
+import countriesData from "../../assets/data/countries-merged.json";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
