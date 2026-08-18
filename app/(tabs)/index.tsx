@@ -150,10 +150,11 @@ export default function App() {
           ))
         )}
       </MapView>
-
+        {selectedCountry && (
       <View style={styles.infoBar} pointerEvents="none">
         <Text style={styles.infoText}>{selectedCountry}</Text>
       </View>
+      )}
     </View>
   );
 }
@@ -168,13 +169,16 @@ const styles = StyleSheet.create({
   },
   infoBar: {
     position: "absolute",
-    top: 48,
-    left: 16,
-    right: 16,
+    bottom: 100,
+    left: 0,
+    right: 0,
     backgroundColor: "rgba(15, 23, 42, 0.68)",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    // paddingHorizontal: 14,
+    // paddingVertical: 12,
+    height: 200,
+    justifyContent: "center",
     alignItems: "center",
   },
   infoText: {
