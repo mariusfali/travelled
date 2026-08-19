@@ -95,6 +95,9 @@ export default function App() {
 
   const handleSheetChanges = useCallback((index: number) => {
     console.log('handleSheetChanges', index); // Denne logger bare sheet stae, men kan være nyttig hvis jeg vil endre UI for om sheeten er dratt opp eller ei
+    if (index === -1) {
+      setSelectedCountry(null);
+    }
   }, []);
 
   const snapPoints = ["30%", "80%"];
@@ -174,6 +177,7 @@ export default function App() {
           snapPoints={snapPoints}
           index={-1}
           enableDynamicSizing={false}
+          enablePanDownToClose={true}
         >
           <BottomSheetView style={styles.contentContainer}>
             <Text>{selectedCountry}</Text>
