@@ -1,9 +1,11 @@
 
 import "@/global.css";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
 import countriesData from "../../assets/data/countries-merged.json";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -89,8 +91,24 @@ export default function App() {
     []
   );
 
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    console.log('handleSheetChanges', index); // Denne logger bare sheet stae, men kan være nyttig hvis jeg vil endre UI for om sheeten er dratt opp eller ei
+  }, []);
+
+  const snapPoints = ["30%", "80%"];
+
+  useEffect(() => {
+    if (selectedCountry) {
+      bottomSheetRef.current?.snapToIndex(0);
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [selectedCountry]);
+
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <MapView
         style={styles.map}
         // initialRegion={{
@@ -150,12 +168,18 @@ export default function App() {
           ))
         )}
       </MapView>
-        {selectedCountry && (
-      <View style={styles.infoBar} pointerEvents="none">
-        <Text style={styles.infoText}>{selectedCountry}</Text>
-      </View>
-      )}
-    </View>
+        <BottomSheet
+          ref={bottomSheetRef}
+          onChange={handleSheetChanges}
+          snapPoints={snapPoints}
+          index={-1}
+          enableDynamicSizing={false}
+        >
+          <BottomSheetView style={styles.contentContainer}>
+            <Text>{selectedCountry}</Text>
+          </BottomSheetView>
+        </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
@@ -167,24 +191,29 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  infoBar: {
-    position: "absolute",
-    bottom: 100,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.68)",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    // paddingHorizontal: 14,
-    // paddingVertical: 12,
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoText: {
-    color: "#f8fafc",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+  // infoBar: {
+  //   position: "absolute",
+  //   bottom: 100,
+  //   left: 0,
+  //   right: 0,
+  //   backgroundColor: "rgba(15, 23, 42, 0.68)",
+  //   borderTopLeftRadius: 16,
+  //   borderTopRightRadius: 16,
+  //   // paddingHorizontal: 14,
+  //   // paddingVertical: 12,
+  //   height: 200,
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
+  // infoText: {
+  //   color: "#f8fafc",
+  //   fontSize: 12,
+  //   fontWeight: "600",
+  //   letterSpacing: 0.2,
+  // },
+  contentContainer: {
+    flex: 1,
+    padding: 36,
+    alignItems: 'center',
   },
 });
