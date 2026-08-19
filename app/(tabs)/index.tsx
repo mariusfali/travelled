@@ -1,11 +1,12 @@
 
 import "@/global.css";
 import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Pressable } from "react-native";
 import MapView, { Polygon } from "react-native-maps";
 import countriesData from "../../assets/data/countries-merged.json";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -108,6 +109,13 @@ export default function App() {
     }
   }, [selectedCountry]);
 
+  // const [isVisited, setIsVisited] = useState(false);
+  // const [isWant, setIsWant] = useState(false);
+  // const [isLived, setIsLived] = useState(false);
+  type CountryStatus = "visited" | "want" | "lived" | null;
+
+  const [countryStatus, setCountryStatus] = useState<CountryStatus>(null);
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <MapView
@@ -173,7 +181,69 @@ export default function App() {
           enablePanDownToClose={true}
         >
           <BottomSheetView style={styles.contentContainer}>
-            <Text>{selectedCountry}</Text>
+            <Text style={{paddingBottom: 30}}>{selectedCountry}</Text>
+            <View style={{flexDirection: "row", gap: 20}}>
+              <Pressable
+                onPress={() =>
+                  setCountryStatus(current =>
+                    current === "visited" ? null : "visited"
+                  )
+                }
+                style={[
+                  styles.button,
+                  countryStatus === "visited" && styles.buttonVisitedPressed,
+                ]}
+              >
+                <Text style={{ color: countryStatus === "visited" ? "white" : "black" }}>
+                  Visited
+                </Text>
+                <Ionicons
+                  name={countryStatus === "visited" ? "location" : "location-outline"}
+                  color={countryStatus === "visited" ? "white" : "black"}
+                  size={25}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  setCountryStatus(current =>
+                    current === "want" ? null : "want"
+                  )
+                }
+                style={[
+                  styles.button,
+                  countryStatus === "want" && styles.buttonWantPressed,
+                ]}
+              >
+                <Text style={{ color: countryStatus === "want" ? "white" : "black" }}>
+                  Want
+                </Text>
+                <Ionicons
+                  name={countryStatus === "want" ? "heart" : "heart-outline"}
+                  color={countryStatus === "want" ? "white" : "black"}
+                  size={25}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  setCountryStatus(current =>
+                    current === "lived" ? null : "lived"
+                  )
+                }
+                style={[
+                  styles.button,
+                  countryStatus === "lived" && styles.buttonLivedPressed,
+                ]}
+              >
+                <Text style={{ color: countryStatus === "lived" ? "white" : "black" }}>
+                  Lived
+                </Text>
+                <Ionicons
+                  name={countryStatus === "lived" ? "home" : "home-outline"}
+                  color={countryStatus === "lived" ? "white" : "black"}
+                  size={25}
+                />
+              </Pressable>
+            </View>
           </BottomSheetView>
         </BottomSheet>
     </GestureHandlerRootView>
@@ -210,7 +280,26 @@ const styles = StyleSheet.create({
   // },
   contentContainer: {
     flex: 1,
-    padding: 36,
+    padding: 10,
     alignItems: 'center',
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderStyle: "solid",
+    borderColor: "black",
+    borderWidth: 2,
+    borderRadius: 50,
+    padding: 10,
+  },
+  buttonVisitedPressed: {
+    backgroundColor: "#a202ff8c",
+  },
+  buttonWantPressed: {
+    backgroundColor: "#19cac18c",
+  },
+  buttonLivedPressed: {
+    backgroundColor: "#f7a325f6",
   },
 });
