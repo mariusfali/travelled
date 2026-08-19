@@ -7,6 +7,9 @@ import countriesData from "../../assets/data/countries-merged.json";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import type { CountryStatus, Memory, CountryUserData, TravelData } from "@/types/travel";
+import { useSQLiteContext } from "expo-sqlite";
+import { getTravelData, setCountryStatus } from "@/database/countries";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -30,6 +33,7 @@ type GeoJsonFeature = {
     name?: string;
     NAME?: string;
     ADMIN?: string;
+    ISO_A2?: string;
     [key: string]: unknown;
   };
   geometry?: GeoJsonGeometry;
@@ -74,8 +78,8 @@ const getPolygonRings = (geometry?: GeoJsonGeometry): PolygonRing[] => {
 };
 
 export default function App() {
-  // const [selectedCountry, setSelectedCountry] = useState("World map");
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
 
   const polygons = useMemo(
     () =>
@@ -83,10 +87,19 @@ export default function App() {
         .filter((feature) => !isAntarctica(feature))
         .map((feature) => {
           const name = getCountryName(feature);
+          const code = feature.properties?.ISO_A2;
           const rings = getPolygonRings(feature.geometry);
-          return { name, rings };
+          return { name, code, rings };
         })
-        .filter((country) => country.rings.length > 0),
+        .filter(
+          (country): country is {
+            name: string;
+            code: string;
+            rings: PolygonRing[];
+          } =>
+            country.rings.length > 0 &&
+            typeof country.code === "string"
+        ),
     []
   );
 
@@ -95,26 +108,79 @@ export default function App() {
   const handleSheetChanges = useCallback((index: number) => {
     console.log('handleSheetChanges', index); // Denne logger bare sheet stae, men kan være nyttig hvis jeg vil endre UI for om sheeten er dratt opp eller ei
     if (index === -1) {
-      setSelectedCountry(null);
+      setSelectedCountryCode(null);
     }
   }, []);
 
   const snapPoints = ["30%", "80%"];
 
   useEffect(() => {
-    if (selectedCountry) {
+    if (selectedCountryCode) {
       bottomSheetRef.current?.snapToIndex(0);
     } else {
       bottomSheetRef.current?.close();
     }
-  }, [selectedCountry]);
+  }, [selectedCountryCode]);
 
-  // const [isVisited, setIsVisited] = useState(false);
-  // const [isWant, setIsWant] = useState(false);
-  // const [isLived, setIsLived] = useState(false);
-  type CountryStatus = "visited" | "want" | "lived" | null;
 
-  const [countryStatus, setCountryStatus] = useState<CountryStatus>(null);
+
+  const db = useSQLiteContext();
+  const [travelData, setTravelData] = useState<TravelData>({});
+
+  useEffect(() => {
+    async function loadTravelData() {
+      const data = await getTravelData(db);
+      setTravelData(data);
+    }
+
+    loadTravelData();
+  }, [db]);
+
+  const updateCountryStatus = async (
+    status: CountryStatus | null
+  ) => {
+    if (!selectedCountryCode) return;
+
+    await setCountryStatus(
+      db,
+      selectedCountryCode,
+      status
+    );
+
+    setTravelData((current) => {
+      const existing = current[selectedCountryCode];
+
+      if (status === null) {
+        return {
+          ...current,
+          [selectedCountryCode]: {
+            ...existing,
+            status: undefined,
+            memories: existing?.memories ?? [],
+          },
+        };
+      }
+
+      return {
+        ...current,
+        [selectedCountryCode]: {
+          ...existing,
+          status,
+          memories: existing?.memories ?? [],
+        },
+      };
+    });
+  };
+
+  const currentStatus =
+    selectedCountryCode
+      ? travelData[selectedCountryCode]?.status
+      : undefined;
+
+  const selectedCountry = polygons.find(
+    (country) => country.code === selectedCountryCode
+  );
+
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -143,10 +209,10 @@ export default function App() {
         zoomEnabled
 
         onPress={() => {
-            setSelectedCountry(null);
+            setSelectedCountryCode(null);
         }}
       >
-        {polygons.map(({ name, rings }) =>
+        {polygons.map(({ name, code, rings }) =>
           rings.map((ring: PolygonRing, index: number) => (
             <Polygon
               key={`${name}-${index}`}
@@ -154,18 +220,26 @@ export default function App() {
               strokeColor="rgba(0, 0, 0, 0.7)"
               // fillColor="rgba(96, 165, 250, 0.08)"
               fillColor={
-                selectedCountry === name
+                travelData[code]?.status === "visited"
                   ? "rgba(162, 2, 255, 0.55)"
-                  : "rgba(80, 79, 79, 0.15)" // farge også opacity på slutten der
+                  : travelData[code]?.status === "want"
+                    ? "rgba(25, 202, 193, 0.55)"
+                    : travelData[code]?.status === "lived"
+                      ? "rgba(247, 163, 37, 0.55)"
+                      : "rgba(80, 79, 79, 0.15)" // opacity er den siste
               }
               // strokeWidth={2}
-              strokeWidth={selectedCountry === name ? 2 : 1}
+              strokeWidth={selectedCountryCode === code ? 3 : 1}
               tappable
               // onPress={() => setSelectedCountry(name)}
+              // onPress={() => {
+              //   setSelectedCountryCode((current) =>
+              //     current === code ? null : code
+              //   );
+              // }}
               onPress={() => {
-
-                setSelectedCountry((current) =>
-                  current === name ? null : name
+                setSelectedCountryCode((current) =>
+                  current === code ? null : code
                 );
               }}
             />
@@ -181,65 +255,71 @@ export default function App() {
           enablePanDownToClose={true}
         >
           <BottomSheetView style={styles.contentContainer}>
-            <Text style={{paddingBottom: 30}}>{selectedCountry}</Text>
+            <Text style={{paddingBottom: 30}}>{selectedCountry?.name}</Text>
             <View style={{flexDirection: "row", gap: 20}}>
               <Pressable
                 onPress={() =>
-                  setCountryStatus(current =>
-                    current === "visited" ? null : "visited"
+                  updateCountryStatus(
+                    currentStatus === "visited"
+                      ? null
+                      : "visited"
                   )
                 }
                 style={[
                   styles.button,
-                  countryStatus === "visited" && styles.buttonVisitedPressed,
+                  currentStatus === "visited" && styles.buttonVisitedPressed,
                 ]}
               >
-                <Text style={{ color: countryStatus === "visited" ? "white" : "black" }}>
+                <Text style={{ color: currentStatus === "visited" ? "white" : "black" }}>
                   Visited
                 </Text>
                 <Ionicons
-                  name={countryStatus === "visited" ? "location" : "location-outline"}
-                  color={countryStatus === "visited" ? "white" : "black"}
+                  name={currentStatus === "visited" ? "location" : "location-outline"}
+                  color={currentStatus === "visited" ? "white" : "black"}
                   size={25}
                 />
               </Pressable>
               <Pressable
                 onPress={() =>
-                  setCountryStatus(current =>
-                    current === "want" ? null : "want"
+                  updateCountryStatus(
+                    currentStatus === "want"
+                      ? null
+                      : "want"
                   )
                 }
                 style={[
                   styles.button,
-                  countryStatus === "want" && styles.buttonWantPressed,
+                  currentStatus === "want" && styles.buttonWantPressed,
                 ]}
               >
-                <Text style={{ color: countryStatus === "want" ? "white" : "black" }}>
+                <Text style={{ color: currentStatus === "want" ? "white" : "black" }}>
                   Want
                 </Text>
                 <Ionicons
-                  name={countryStatus === "want" ? "heart" : "heart-outline"}
-                  color={countryStatus === "want" ? "white" : "black"}
+                  name={currentStatus === "want" ? "heart" : "heart-outline"}
+                  color={currentStatus === "want" ? "white" : "black"}
                   size={25}
                 />
               </Pressable>
               <Pressable
                 onPress={() =>
-                  setCountryStatus(current =>
-                    current === "lived" ? null : "lived"
+                  updateCountryStatus(
+                    currentStatus === "lived"
+                      ? null
+                      : "lived"
                   )
                 }
                 style={[
                   styles.button,
-                  countryStatus === "lived" && styles.buttonLivedPressed,
+                  currentStatus === "lived" && styles.buttonLivedPressed,
                 ]}
               >
-                <Text style={{ color: countryStatus === "lived" ? "white" : "black" }}>
+                <Text style={{ color: currentStatus === "lived" ? "white" : "black" }}>
                   Lived
                 </Text>
                 <Ionicons
-                  name={countryStatus === "lived" ? "home" : "home-outline"}
-                  color={countryStatus === "lived" ? "white" : "black"}
+                  name={currentStatus === "lived" ? "home" : "home-outline"}
+                  color={currentStatus === "lived" ? "white" : "black"}
                   size={25}
                 />
               </Pressable>
