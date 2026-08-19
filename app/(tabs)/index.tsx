@@ -76,8 +76,6 @@ export default function App() {
   // const [selectedCountry, setSelectedCountry] = useState("World map");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
-  const polygonWasPressed = useRef(false);
-
   const polygons = useMemo(
     () =>
       worldData.features
@@ -137,11 +135,7 @@ export default function App() {
         zoomEnabled
 
         onPress={() => {
-          if (!polygonWasPressed.current) {
             setSelectedCountry(null);
-          }
-
-          polygonWasPressed.current = false;
         }}
       >
         {polygons.map(({ name, rings }) =>
@@ -161,7 +155,6 @@ export default function App() {
               tappable
               // onPress={() => setSelectedCountry(name)}
               onPress={() => {
-                polygonWasPressed.current = true;
 
                 setSelectedCountry((current) =>
                   current === name ? null : name
