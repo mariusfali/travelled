@@ -344,7 +344,7 @@ export default function App() {
               </Pressable>
             </View>
             <View style={{flexDirection: "row", gap: 5, paddingTop: 60, paddingBottom: 30}}>
-              <Text>Memories</Text>
+              <Text style={{ fontWeight: "bold", fontSize: 16}}>Memories</Text>
               <Ionicons
                   name="camera-outline"
                   size={24}
