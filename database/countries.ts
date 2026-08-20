@@ -74,3 +74,4 @@ export async function getTravelData(
 
   return data;
 }
+

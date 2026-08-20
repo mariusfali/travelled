@@ -343,6 +343,23 @@ export default function App() {
                 />
               </Pressable>
             </View>
+            <View style={{flexDirection: "row", gap: 5, paddingTop: 60, paddingBottom: 30}}>
+              <Text>Memories</Text>
+              <Ionicons
+                  name="camera-outline"
+                  size={24}
+                  color="black"
+                />
+            </View>
+            <Text>INSERT MEMORY HERE</Text>
+            <Pressable style={{flexDirection: "row", gap: 5, paddingTop: 30, justifyContent: "flex-end", width: "90%"}}>
+              <Text>Add memory</Text>
+              <Ionicons
+                  name="add-outline"
+                  size={24}
+                  color="black"
+                />
+            </Pressable>
           </BottomSheetView>
         </BottomSheet>
     </GestureHandlerRootView>
