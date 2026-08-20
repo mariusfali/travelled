@@ -105,8 +105,7 @@ export default function App() {
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index); // Denne logger bare sheet stae, men kan være nyttig hvis jeg vil endre UI for om sheeten er dratt opp eller ei
+  const handleSheetChanges = useCallback((index: number) => { // kan være nyttig hvis jeg vil endre UI for om sheeten er dratt opp eller ei
     if (index === -1) {
       setSelectedCountryCode(null);
     }
@@ -181,11 +180,31 @@ export default function App() {
     (country) => country.code === selectedCountryCode
   );
 
+  const mapStyle = [
+    {
+      stylers: [
+        { saturation: -30 },
+        { hue: "#f1cf10" },
+        { lightness: 20 },
+      ],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [
+        {
+          color: "#77daf8",
+        },
+      ],
+    },
+  ];
+
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <MapView
         style={styles.map}
+        customMapStyle={mapStyle}
         // initialRegion={{
         //   latitude: 20,
         //   longitude: 0,
