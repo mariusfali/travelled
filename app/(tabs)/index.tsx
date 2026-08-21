@@ -1,15 +1,18 @@
 
 import "@/global.css";
 import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { StyleSheet, Text, View, Pressable } from "react-native";
+import { StyleSheet, Text, View, Pressable, Image, Modal, FlatList, Dimensions} from "react-native";
 import MapView, { Polygon } from "react-native-maps";
 import countriesData from "../../assets/data/countries-merged.json";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import type { CountryStatus, Memory, CountryUserData, TravelData } from "@/types/travel";
 import { useSQLiteContext } from "expo-sqlite";
 import { getTravelData, setCountryStatus } from "@/database/countries";
+import { addMemory, deleteMemory } from "@/database/memories";
+import * as ImagePicker from "expo-image-picker";
+import { File, Directory, Paths } from "expo-file-system";
 
 type GeoJsonPoint = [number, number];
 type GeoJsonRing = GeoJsonPoint[];
@@ -199,6 +202,151 @@ export default function App() {
     },
   ];
 
+  const currentMemories =
+    selectedCountryCode
+      ? travelData[selectedCountryCode]?.memories ?? []
+      : [];
+
+
+  const handleAddMemory = async () => {
+    if (!selectedCountryCode) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: false,
+      quality: 0.8,
+      allowsMultipleSelection: true,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const assets = [...result.assets].reverse();
+
+    for (const asset of assets) {
+      const id = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
+
+      const imageUri = await saveImageLocally(
+        asset.uri,
+        id
+      );
+
+      const memory: Memory = {
+        id,
+        imageUri,
+      };
+
+      await addMemory(
+        db,
+        selectedCountryCode,
+        memory
+      );
+    }
+    const updatedData = await getTravelData(db);
+
+    setTravelData(updatedData);
+  };
+
+  const saveImageLocally = async (
+    sourceUri: string,
+    id: string
+  ) => {
+    const memoriesDirectory = new Directory(
+      Paths.document,
+      "memories"
+    );
+
+    if (!memoriesDirectory.exists) {
+      memoriesDirectory.create({
+        intermediates: true,
+      });
+    }
+
+    const sourceFile = new File(sourceUri);
+
+    const extension =
+      sourceFile.extension || ".jpg";
+
+    const destination = new File(
+      memoriesDirectory,
+      `${id}${extension}`
+    );
+
+    sourceFile.copy(destination);
+
+    return destination.uri;
+  };
+
+  const memoryListRef = useRef<FlatList<Memory>>(null);
+
+  const deleteMemoryAndFile = async (memory: Memory) => {
+    await deleteMemory(db, memory.id);
+
+    const file = new File(memory.imageUri);
+
+    if (file.exists) {
+      file.delete();
+    }
+
+    const updatedData = await getTravelData(db);
+    setTravelData(updatedData);
+
+    const remainingMemories =
+      updatedData[selectedCountryCode!]?.memories ?? [];
+
+    if (remainingMemories.length === 0) {
+      setMemoryViewerVisible(false);
+      setSelectedMemoryIndex(0);
+      return;
+    }
+
+    const newIndex = Math.min(
+      selectedMemoryIndex,
+      remainingMemories.length - 1
+    );
+
+    setSelectedMemoryIndex(newIndex);
+
+    // Give React a moment to update the FlatList's data
+    requestAnimationFrame(() => {
+      memoryListRef.current?.scrollToIndex({
+        index: newIndex,
+        animated: false,
+      });
+    });
+  };
+
+  const handleMemoryViewableItemsChanged = useRef(
+    ({ viewableItems }: any) => {
+      if (viewableItems.length > 0) {
+        setSelectedMemoryIndex(
+          viewableItems[0].index ?? 0
+        );
+      }
+    }
+  ).current;
+
+  const [memoryViewerVisible, setMemoryViewerVisible] = useState(false);
+  const [selectedMemoryIndex, setSelectedMemoryIndex] = useState(0);
+
+  const openMemoryViewer = (index: number) => {
+    setSelectedMemoryIndex(index);
+    setMemoryViewerVisible(true);
+  };
+
+  // const debugDatabase = async () => {
+  //   const countries = await db.getAllAsync("SELECT * FROM countries");
+  //   const memories = await db.getAllAsync("SELECT * FROM memories");
+
+  //   console.log("========== COUNTRIES ==========");
+  //   console.log(countries);
+
+  //   console.log("========== MEMORIES ==========");
+  //   console.log(memories);
+  // };
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -343,7 +491,7 @@ export default function App() {
                 />
               </Pressable>
             </View>
-            <View style={{flexDirection: "row", gap: 5, paddingTop: 60, paddingBottom: 30}}>
+            <View style={{flexDirection: "row", gap: 5, paddingTop: 40, paddingBottom: 30}}>
               <Text style={{ fontWeight: "bold", fontSize: 16}}>Memories</Text>
               <Ionicons
                   name="camera-outline"
@@ -351,8 +499,23 @@ export default function App() {
                   color="black"
                 />
             </View>
-            <Text>INSERT MEMORY HERE</Text>
-            <Pressable style={{flexDirection: "row", gap: 5, paddingTop: 30, justifyContent: "flex-end", width: "90%"}}>
+            {/* <Text>INSERT MEMORY HERE</Text> */}
+            {currentMemories.length === 0 ? (
+              <Text style={styles.noMemories}>
+                No memories yet
+              </Text>
+            ) : (
+              <Pressable onPress={() => openMemoryViewer(0)}>
+                <Image
+                  source={{ uri: currentMemories[0].imageUri }}
+                  style={styles.memoryImage}
+                />
+              </Pressable>
+            )}
+            {currentMemories.length > 1 && (
+              <Text style={{paddingTop: 20}}>{currentMemories.length} memories. Tap to see the rest!</Text>
+            )}
+            <Pressable style={{flexDirection: "row", gap: 5, paddingTop: 30, justifyContent: "flex-end", width: "90%"}} onPress={handleAddMemory}>
               <Text>Add memory</Text>
               <Ionicons
                   name="add-outline"
@@ -360,8 +523,80 @@ export default function App() {
                   color="black"
                 />
             </Pressable>
+            {/* <Pressable onPress={debugDatabase}>
+              <Text>Debug database</Text>
+            </Pressable> */}
           </BottomSheetView>
         </BottomSheet>
+
+        <Modal
+          visible={memoryViewerVisible}
+          animationType="fade"
+          transparent={false}
+          onRequestClose={() => setMemoryViewerVisible(false)}
+          onShow={() => {
+            requestAnimationFrame(() => {
+              memoryListRef.current?.scrollToIndex({
+                index: selectedMemoryIndex,
+                animated: false,
+              });
+            });
+          }}
+        >
+          <View style={styles.viewerContainer}>
+
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setMemoryViewerVisible(false)}
+            >
+              <Ionicons
+                name="close"
+                size={30}
+                color="white"
+              />
+            </Pressable>
+            <Pressable
+              style={styles.deleteButton}
+              onPress={() => {
+                const memory = currentMemories[selectedMemoryIndex];
+
+                if (memory) {
+                  deleteMemoryAndFile(memory);
+                }
+              }}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={28}
+                color="white"
+              />
+            </Pressable>
+
+            <FlatList
+              ref={memoryListRef}
+              data={currentMemories}
+              horizontal
+              pagingEnabled
+              initialScrollIndex={selectedMemoryIndex}
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.id}
+              onViewableItemsChanged={handleMemoryViewableItemsChanged}
+              viewabilityConfig={{
+                itemVisiblePercentThreshold: 50,
+              }}
+              renderItem={({ item }) => (
+                <View style={styles.viewerImageContainer}>
+                  <Image
+                    source={{ uri: item.imageUri }}
+                    style={styles.viewerImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+            />
+
+          </View>
+        </Modal>
     </GestureHandlerRootView>
   );
 }
@@ -418,4 +653,64 @@ const styles = StyleSheet.create({
   buttonLivedPressed: {
     backgroundColor: "#f7a325f6",
   },
+
+  memoryImage: {
+    width: 250,
+    height: 250,
+    borderRadius: 15,
+    marginHorizontal: 5,
+  },
+
+  noMemories: {
+    color: "#777",
+  },
+  memoryList: {
+    width: "100%",
+    flexGrow: 0,
+  },
+
+  memoryListContent: {
+    paddingHorizontal: 5,
+  },
+  viewerContainer: {
+    flex: 1,
+    backgroundColor: "black",
+  },
+
+  viewerImageContainer: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  viewerImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  closeButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteButton: {
+  position: "absolute",
+  top: 60,
+  left: 20,
+  zIndex: 10,
+  width: 45,
+  height: 45,
+  borderRadius: 25,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+},
 });

@@ -3,14 +3,45 @@ import type { CountryStatus, TravelData } from "../types/travel";
 
 export async function setCountryStatus(
   db: SQLiteDatabase,
-  countryCode: string,
+  country_code: string,
   status: CountryStatus | null
 ) {
+  // if (status === null) {
+  //   await db.runAsync(
+  //     "DELETE FROM countries WHERE code = ?",
+  //     country_code
+  //   );
+  //   return;
+  // }
+
   if (status === null) {
+    // Remove the status, but keep the country
+    // if it still has memories.
     await db.runAsync(
-      "DELETE FROM countries WHERE code = ?",
-      countryCode
+      `
+      UPDATE countries
+      SET status = NULL
+      WHERE code = ?
+      `,
+      country_code
     );
+
+    // If there is now neither a status nor any memories,
+    // remove the country row entirely.
+    await db.runAsync(
+      `
+      DELETE FROM countries
+      WHERE code = ?
+        AND status IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM memories
+          WHERE memories.country_code = countries.code
+        )
+      `,
+      country_code
+    );
+
     return;
   }
 
@@ -21,7 +52,7 @@ export async function setCountryStatus(
     ON CONFLICT(code)
     DO UPDATE SET status = excluded.status
     `,
-    countryCode,
+    country_code,
     status
   );
 }
@@ -40,11 +71,12 @@ export async function getTravelData(
     id: string;
     country_code: string;
     image_uri: string;
-    title: string | null;
-    description: string | null;
-    date: string | null;
+    // title: string | null;
+    // description: string | null;
+    // date: string | null;
   }>(
-    "SELECT * FROM memories"
+    // "SELECT * FROM memories"
+    "SELECT id, country_code, image_uri FROM memories"
   );
 
   const data: TravelData = {};
@@ -66,9 +98,9 @@ export async function getTravelData(
     data[memory.country_code].memories.push({
       id: memory.id,
       imageUri: memory.image_uri,
-      title: memory.title ?? undefined,
-      description: memory.description ?? undefined,
-      date: memory.date ?? undefined,
+      // title: memory.title ?? undefined,
+      // description: memory.description ?? undefined,
+      // date: memory.date ?? undefined,
     });
   }
 

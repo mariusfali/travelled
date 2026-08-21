@@ -3,9 +3,9 @@ export type CountryStatus = "visited" | "want" | "lived";
 export type Memory = {
   id: string;
   imageUri: string;
-  title?: string;
-  description?: string;
-  date?: string;
+  // title?: string;
+  // description?: string;
+  // date?: string;
 };
 
 export type CountryUserData = {
